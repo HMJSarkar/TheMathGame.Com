@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game</title>
+    <link rel="icon" type="image/x-icon" href="logo.png">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #6967f5, #feb47b);
+        }
+        #game-container {
+            margin-top: 13px;
+            padding: 0 10px;
+        }
+        #equation {
+            font-size: 2em;
+            margin: 20px;
+        }
+        #answer-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .answer-button {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            min-width: 100px;
+        }
+        .answer-button:hover {
+            background-color: #f13f6b;
+        }
+        #game-over {
+            display: none;
+            margin-top: 50px;
+            font-size: 1.5em;
+        }
+        #restart-btn {
+            font-size: 1.2em;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+        #restart-btn:hover {
+            background-color: #f13f6b;
+        }
+        #score {
+            font-size: 1.5em;
+            margin: 20px;
+        }
+        #timer {
+            font-size: 1.5em;
+            margin: 20px;
+            color: red;
+        }
+        #time-taken {
+            font-size: 1.2em;
+            color: blue;
+            margin-top: 10px;
+        }
+        #sound-toggle {
+            font-size: 1.2em;
+            cursor: pointer;
+            margin-bottom: 20px;
+            background-color: #f1f1f1;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+        #sound-toggle.on {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #sound-toggle.off {
+            background-color: #f44336;
+            color: white;
+        }
+
+         /* Style for the level select dropdown */
+         #level {
+            font-size: 1em;
+            padding: 5px 10px;
+            margin: 10px 0;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+            background-color: white;
+            color: #333;
+            cursor: pointer;
+            outline: none;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 768px) {
+            #equation {
+                font-size: 1.8em;
+            }
+            .answer-button {
+                font-size: 1em;
+                padding: 8px 16px;
+                min-width: 80px;
+            }
+            #score, #timer, #time-taken {
+                font-size: 1.2em;
+            }
+            #restart-btn {
+                font-size: 1.1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #equation {
+                font-size: 1.5em;
+            }
+            .answer-button {
+                font-size: 0.9em;
+                padding: 8px 12px;
+                min-width: 70px;
+            }
+            #score, #timer, #time-taken {
+                font-size: 1em;
+            }
+            #restart-btn {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div>
+            <button id="sound-toggle" class="on" onclick="toggleSound()">Sound: ON</button>
+        </div>
+        <div>
+            <label for="level">Select Level: </label>
+            <select id="level">
+                <option value="1">Level 1 (Easy)</option>
+                <option value="2">Level 2 (Less Easy)</option>
+                <option value="3">Level 3 (Medium)</option>
+                <option value="4">Level 4 (Less Hard)</option>
+                <option value="5">Level 5 (Hard)</option>
+            </select>
+        </div>
+        <div id="score">Score: 0</div>
+        <div id="time-taken">Time taken: 0s</div>
+        <div id="equation"></div>
+        <div id="answer-options"></div>
+        <div id="timer">Time left: 15s</div>
+        <div id="game-over">
+            <p id="game-over-message">Game Over ! You didn't answer in time.</p>
+            <p id="correct-answer-message"></p>
+            <button id="restart-btn" onclick="playRestartSoundAndStartGame()">Restart Game</button>
+        </div>
+    </div>
+
+    <script>
+        let correctAnswer;
+        let level;
+        let score = 0;
+        let isGameOver = false;
+        let timer;
+        let timeLeft = 15;
+        let gameStartTime = 0;
+
+        // Sound effects variables
+        let isSoundOn = true;
+        const correctSound = new Audio('right_answer.mp3'); // Correct answer sound
+        const wrongSound = new Audio('wrong_answer.mp3'); // Wrong answer sound
+        const restartSound = new Audio('restart_sound.mp3'); // Restart sound
+        const countdownSound = new Audio('countdown_sound.mp3'); // Countdown sound for last 4 seconds
+
+        document.getElementById("level").addEventListener("change", startGame);
+
+        function playRestartSoundAndStartGame() {
+            if (isSoundOn) restartSound.play(); // Play restart sound only if sound is on
+            startGame(); // Start the game
+        }
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const soundButton = document.getElementById("sound-toggle");
+            if (isSoundOn) {
+                soundButton.textContent = "Sound: ON";
+                soundButton.classList.add("on");
+                soundButton.classList.remove("off");
+            } else {
+                soundButton.textContent = "Sound: OFF";
+                soundButton.classList.add("off");
+                soundButton.classList.remove("on");
+            }
+        }
+
+        function startGame() {
+            level = parseInt(document.getElementById("level").value);
+            score = 0; // Reset the score on game restart
+            timeLeft = 15; // Reset the timer
+            isGameOver = false;
+            gameStartTime = Date.now(); // Track game start time
+            document.getElementById("game-over").style.display = "none";
+            document.getElementById("score").textContent = `Score: ${score}`;
+            document.getElementById("timer").textContent = `Time left: ${timeLeft}s`;
+            document.getElementById("time-taken").textContent = `Time taken: 0s`;
+            document.getElementById("game-over-message").textContent = "Game Over ! You didn't answer in time.";
+            document.getElementById("correct-answer-message").textContent = "";
+            clearInterval(timer); // Clear any existing timer
+            generateEquation();
+        }
+
+        function generateEquation() {
+            if (isGameOver) return;
+
+            let num1, num2, operator, equation, answer;
+            let min, max;
+
+            // Start the countdown timer for this equation
+            startTimer();
+
+            switch (level) {
+                case 1:
+                    min = 1;
+                    max = 10;
+                    operator = Math.random() > 0.5 ? '+' : '-';
+                    num1 = getRandomInt(min, max);
+                    num2 = getRandomInt(min, max);
+                    equation = `${num1} ${operator} ${num2}`;
+                    answer = operator === '+' ? num1 + num2 : num1 - num2;
+                    break;
+                case 2:
+                    min = 1;
+                    max = 20;
+                    operator = Math.random() > 0.5 ? '*' : '/';
+                    num1 = getRandomInt(min, max);
+                    num2 = getRandomInt(min, max);
+                    if (operator === '/') {
+                        num1 *= num2; // Ensure num1 is divisible by num2
+                    }
+                    equation = `${num1} ${operator} ${num2}`;
+                    answer = operator === '*' ? num1 * num2 : num1 / num2;
+                    break;
+                case 3:
+                    min = 5;
+                    max = 50;
+                    operator = ['+', '-', '*', '/'][Math.floor(Math.random() * 4)];
+                    num1 = getRandomInt(min, max);
+                    num2 = getRandomInt(min, max);
+                    equation = `${num1} ${operator} ${num2}`;
+                    answer = evaluateEquation(num1, num2, operator);
+                    break;
+                case 4:
+                    min = 10;
+                    max = 100;
+                    operator = ['+', '-', '*', '/'][Math.floor(Math.random() * 4)];
+                    num1 = getRandomInt(min, max);
+                    num2 = getRandomInt(min, max);
+                    equation = `${num1} ${operator} ${num2}`;
+                    answer = evaluateEquation(num1, num2, operator);
+                    break;
+                case 5:
+                    min = 20;
+                    max = 200;
+                    operator = ['+', '-', '*', '/'][Math.floor(Math.random() * 4)];
+                    num1 = getRandomInt(min, max);
+                    num2 = getRandomInt(min, max);
+                    equation = `${num1} ${operator} ${num2}`;
+                    answer = evaluateEquation(num1, num2, operator);
+                    break;
+            }
+
+            correctAnswer = answer;
+            displayEquation(equation);
+            displayAnswerOptions(answer);
+        }
+
+        function evaluateEquation(num1, num2, operator) {
+            switch (operator) {
+                case '+': return num1 + num2;
+                case '-': return num1 - num2;
+                case '*': return num1 * num2;
+                case '/': return num1 / num2;
+            }
+        }
+
+        function displayEquation(equation) {
+            document.getElementById("equation").textContent = equation;
+        }
+
+        function displayAnswerOptions(correctAnswer) {
+            const options = [correctAnswer];
+            while (options.length < 4) {
+                let randomOption = getRandomInt(correctAnswer - 10, correctAnswer + 10);
+                if (!options.includes(randomOption)) {
+                    options.push(randomOption);
+                }
+            }
+
+            options.sort(() => Math.random() - 0.5);
+            const answerOptionsDiv = document.getElementById("answer-options");
+            answerOptionsDiv.innerHTML = '';
+            options.forEach(option => {
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.classList.add("answer-button");
+                button.onclick = () => checkAnswer(option);
+                answerOptionsDiv.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedAnswer) {
+            if (isGameOver) return; // Prevent score increment if the game is over
+
+            if (selectedAnswer === correctAnswer) {
+                if (isSoundOn) correctSound.play(); // Play correct sound only if sound is on
+                score++; // Increment score on correct answer
+                document.getElementById("score").textContent = `Score: ${score}`;
+                generateEquation();
+            } else {
+                if (isSoundOn) wrongSound.play(); // Play wrong sound only if sound is on
+                document.getElementById("game-over-message").textContent = "Game Over ! You selected a wrong answer.";
+                document.getElementById("correct-answer-message").textContent = `The right answer is: ${correctAnswer}`;
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            document.getElementById("game-over").style.display = "block";
+            document.getElementById("time-taken").textContent = `Time taken: ${Math.floor((Date.now() - gameStartTime) / 1000)}s`;
+            clearInterval(timer); // Stop the timer when the game is over
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function startTimer() {
+            clearInterval(timer); // Clear the previous timer before starting a new one
+            timeLeft = 15; // Reset time on each new equation
+            document.getElementById("timer").textContent = `Time left: ${timeLeft}s`;
+
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").textContent = `Time left: ${timeLeft}s`;
+
+                if (timeLeft <= 3 && timeLeft > 0) {
+                    if (isSoundOn) countdownSound.play(); // Play countdown sound only if sound is on
+                }
+
+                if (timeLeft <= 0) {
+                    gameOver();
+                }
+            }, 1000);
+        }
+
+        // Start the game when the page loads
+        startGame();
+    </script>
+    <h5>Developed by <a href="https://www.facebook.com/HMJSarkar" target="_blank">HMJSarkar</a></h5>
+</body>
+</html>
